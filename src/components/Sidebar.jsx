@@ -106,7 +106,8 @@ const Sidebar = () => {
             return (
               <NavCategory key={item.key} value={item.key}>
                 <NavCategoryItem
-                  icon={item.icon}
+                  // Pass an instantiated React element for the icon slot (fixes invalid attribute $$typeof warning)
+                  icon={item.icon ? React.createElement(item.icon) : undefined}
                   style={anyChildActive ? activeCategoryStyle : undefined}
                   onClick={() => toggleCategory(item.key)}
                   aria-expanded={open}

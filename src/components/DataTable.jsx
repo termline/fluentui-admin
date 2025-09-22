@@ -81,27 +81,48 @@ const DataTable = ({
   };
 
   // ---------- 列显隐状态 ----------
-  const storageKey = columnVisibility?.storageKey || 'datatable_columns';
   const allKeys = columns.map(c => c.key);
+  const usingVisibility = Boolean(columnVisibility);
+  const storageKey = usingVisibility ? (columnVisibility.storageKey || 'datatable_columns') : null;
   const initialVisible = (() => {
-    if (columnVisibility?.defaultVisibleKeys) return columnVisibility.defaultVisibleKeys.filter(k => allKeys.includes(k));
-    try {
-      const persisted = localStorage.getItem(storageKey);
-      if (persisted) {
-        const arr = JSON.parse(persisted);
-        if (Array.isArray(arr)) return arr.filter(k => allKeys.includes(k));
-      }
-    } catch { /* ignore */ }
+    // 未启用列显隐功能时，全部显示
+    if (!usingVisibility) return allKeys;
+    // 1. defaultVisibleKeys 优先
+    if (columnVisibility.defaultVisibleKeys) {
+      const filtered = columnVisibility.defaultVisibleKeys.filter(k => allKeys.includes(k));
+      return filtered.length ? filtered : allKeys;
+    }
+    // 2. 持久化
+    if (storageKey) {
+      try {
+        const persisted = localStorage.getItem(storageKey);
+        if (persisted) {
+          const arr = JSON.parse(persisted);
+          if (Array.isArray(arr)) {
+            const filtered = arr.filter(k => allKeys.includes(k));
+            if (filtered.length) return filtered;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    // 3. 全部
     return allKeys;
   })();
   const [visibleKeys, setVisibleKeys] = useState(initialVisible);
 
   useEffect(() => {
-    try { localStorage.setItem(storageKey, JSON.stringify(visibleKeys)); } catch { /* ignore */ }
-    columnVisibility?.onChange && columnVisibility.onChange(visibleKeys);
-  }, [visibleKeys]);
+    if (usingVisibility && storageKey) {
+      try { localStorage.setItem(storageKey, JSON.stringify(visibleKeys)); } catch { /* ignore */ }
+    }
+    if (usingVisibility && columnVisibility.onChange) {
+      columnVisibility.onChange(visibleKeys);
+    }
+  }, [visibleKeys, usingVisibility, storageKey, columnVisibility]);
 
-  const effectiveColumns = useMemo(() => columns.filter(c => visibleKeys.includes(c.key)), [columns, visibleKeys]);
+  const effectiveColumns = useMemo(() => {
+    const filtered = columns.filter(c => visibleKeys.includes(c.key));
+    return filtered.length ? filtered : columns; // 防御：至少显示全部
+  }, [columns, visibleKeys]);
 
   const toggleColumn = (key) => {
     setVisibleKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
@@ -223,7 +244,7 @@ const DataTable = ({
         {fmts.includes('csv') && <Button size="small" onClick={() => doExport('csv')}>{t('datatable.export.csv')}</Button>}
         {fmts.includes('json') && <Button size="small" appearance="secondary" onClick={() => doExport('json')}>{t('datatable.export.json')}</Button>}
         {enableSelection && <span style={{ fontSize: 12, opacity: 0.7 }}>当前选择: {selected.size} 行</span>}
-        {columnVisibility && (
+        {usingVisibility && (
           <Popover positioning="below-start">
             <PopoverTrigger disableButtonEnhancement>
               <Button size="small" appearance="outline">{t('datatable.column.config')}</Button>
