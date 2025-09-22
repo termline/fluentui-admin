@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NavDrawer, NavDrawerBody, NavDrawerHeader, NavItem, NavSectionHeader, NavDivider, NavCategory, NavCategoryItem, NavSubItemGroup, NavSubItem } from '@fluentui/react-components';
 import useGlobalStore from '../store';
@@ -55,6 +55,19 @@ const Sidebar = () => {
     });
   };
 
+  // refs to category buttons to simulate click for restoring expansion
+  const categoryRefs = useRef({});
+
+  useEffect(() => {
+    // try expand for stored categories if not already expanded
+    openCategories.forEach(key => {
+      const el = categoryRefs.current[key];
+      if (el && el.getAttribute('aria-expanded') === 'false') {
+        el.click();
+      }
+    });
+  }, []); // run once after mount
+
   // 根据 section 字段拆分
   const mainItems = [];
   const otherItems = [];
@@ -97,6 +110,7 @@ const Sidebar = () => {
                   style={anyChildActive ? activeCategoryStyle : undefined}
                   onClick={() => toggleCategory(item.key)}
                   aria-expanded={open}
+                  ref={el => { if (el) categoryRefs.current[item.key] = el; }}
                 >
                   {item.i18nKey ? t(item.i18nKey) : item.label}
                   <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.6 }}>{open ? '▾' : '▸'}</span>
