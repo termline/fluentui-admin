@@ -33,6 +33,8 @@ function resolveImporterForPath(routePath) {
     '/login': '../pages/Login.jsx',
     '/403': '../pages/Forbidden.jsx',
     '/404': '../pages/NotFound.jsx',
+    // minimal explicit mapping for roles page located under users directory
+    '/roles': '../pages/users/Roles.jsx',
   };
   if (special[routePath] && pageModules[special[routePath]]) return pageModules[special[routePath]];
 

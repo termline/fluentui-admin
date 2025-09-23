@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { NavDrawer, NavDrawerBody, NavDrawerHeader, NavItem, NavSectionHeader, NavDivider, NavCategory, NavCategoryItem, NavSubItemGroup, NavSubItem } from '@fluentui/react-components';
+import { Nav, NavItem, NavSubItem, NavSectionHeader, NavDivider, makeStyles, tokens } from '@fluentui/react-components';
+import { ChevronDown16Regular, ChevronRight16Regular, PanelLeftContractRegular, PanelLeftExpandRegular } from '@fluentui/react-icons';
 import useGlobalStore from '../store';
 import { menuTree } from '../config/menuConfig';
 import { getEffectivePermissions, hasPermission } from '../config/permissions';
 import { t } from '../i18n';
 
-// 过滤菜单：根据权限 required vs 用户权限集合
 function filterMenu(tree, permissionsSet) {
   return tree
     .filter(item => hasPermission(permissionsSet, item.required))
@@ -21,29 +21,178 @@ function filterMenu(tree, permissionsSet) {
     .filter(Boolean);
 }
 
+const COLLAPSE_STORAGE_KEY = 'sidebar.collapsed';
+
+const useStyles = makeStyles({
+  root: {
+    width: 280,
+    '--sidebar-expanded-width': '280px',
+    '--sidebar-collapsed-width': '64px',
+    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+    background: tokens.colorNeutralBackground1,
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    transition: 'width 160ms ease'
+  },
+  rootCollapsed: {
+    width: 'var(--sidebar-collapsed-width)'
+  },
+  title: {
+    fontWeight: 500,
+    fontSize: '14px',
+    padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalM} ${tokens.spacingVerticalXS}`,
+    lineHeight: 1.2
+  },
+  titleCollapsed: {
+    fontSize: 0,
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalS} ${tokens.spacingVerticalXXS}`
+  },
+  toggleBar: {
+    padding: `${tokens.spacingVerticalXXS} ${tokens.spacingHorizontalS}`,
+    display: 'flex',
+    justifyContent: 'flex-end'
+  },
+  toggleBtn: {
+    background: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    cursor: 'pointer',
+    borderRadius: 4,
+    width: 32,
+    height: 32,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: tokens.colorNeutralForeground1,
+    ':hover': { background: tokens.colorNeutralBackground2 },
+    ':active': { background: tokens.colorNeutralBackground3 },
+    ':focus-visible': { outline: `2px solid ${tokens.colorStrokeFocus2}`, outlineOffset: 2 }
+  },
+  nav: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalXS} ${tokens.spacingVerticalS}`
+  },
+  categoryButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    margin: 0,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+    fontFamily: 'inherit',
+    fontSize: '13px',
+    lineHeight: 1.3,
+    padding: '6px 8px',
+    borderRadius: 6,
+    textAlign: 'left',
+    color: tokens.colorNeutralForeground1,
+    position: 'relative',
+    ':hover': {
+      background: tokens.colorNeutralBackground2
+    },
+    ':active': {
+      background: tokens.colorNeutralBackground3
+    },
+    ':focus-visible': {
+      outline: `2px solid ${tokens.colorStrokeFocus2}`,
+      outlineOffset: 2
+    }
+  },
+  categoryIcon: {
+    display: 'inline-flex',
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 20,
+    marginRight: 8,
+    transition: 'margin 160ms ease',
+    // 保证内部 svg 尺寸一致，不因字体继承或 line-height 波动
+    '& svg': {
+      width: 20,
+      height: 20,
+      minWidth: 20,
+      minHeight: 20,
+      flexShrink: 0
+    }
+  },
+  categoryIconCollapsed: {
+    marginRight: 0
+  },
+  chevron: {
+    display: 'inline-flex',
+    fontSize: 16,
+    opacity: 0.6
+  },
+  chevronHidden: {
+    display: 'none'
+  },
+  label: {
+    flex: 1,
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    transition: 'opacity 120ms ease'
+  },
+  labelCollapsed: {
+    opacity: 0,
+    pointerEvents: 'none'
+  },
+  role: {
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    fontSize: 11,
+    opacity: 0.65,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`
+  },
+  roleCollapsed: {
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalXXS}`,
+    fontSize: 10,
+    textAlign: 'center'
+  },
+  collapsedTooltip: {
+    position: 'relative'
+  }
+});
+
 const Sidebar = () => {
+  const styles = useStyles();
   const user = useGlobalStore(s => s.user);
   const role = user?.role || 'viewer';
+  // Sidebar collapsed state persistence
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+      return raw === '1';
+    } catch { return false; }
+  });
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
   const permissionsSet = getEffectivePermissions(user);
   const navigate = useNavigate();
   const location = useLocation();
 
   const filtered = filterMenu(menuTree, permissionsSet);
 
-  // 展开状态持久化
+  // Collapsible category persistence (kept from previous custom implementation)
   const STORAGE_KEY = 'sidebar.openCategories';
   const [openCategories, setOpenCategories] = useState(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return new Set(JSON.parse(raw));
     } catch (e) { /* ignore */ }
-    // 默认：若当前路径属于某分类，则该分类展开
     const activeParent = filtered.find(i => i.children && i.children.some(c => c.path === location.pathname));
     return activeParent ? new Set([activeParent.key]) : new Set();
   });
 
-  const persist = useCallback((nextSet) => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(nextSet))); } catch(e) { /* ignore */ }
+  const persist = useCallback((setVal) => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(setVal))); } catch(e){ /* ignore */ }
   }, []);
 
   const toggleCategory = (key) => {
@@ -55,86 +204,117 @@ const Sidebar = () => {
     });
   };
 
-  // refs to category buttons to simulate click for restoring expansion
-  const categoryRefs = useRef({});
-
-  useEffect(() => {
-    // try expand for stored categories if not already expanded
-    openCategories.forEach(key => {
-      const el = categoryRefs.current[key];
-      if (el && el.getAttribute('aria-expanded') === 'false') {
-        el.click();
-      }
-    });
-  }, []); // run once after mount
-
-  // 根据 section 字段拆分
-  const mainItems = [];
-  const otherItems = [];
+  const mainGroups = [];
+  const extraItems = [];
   filtered.forEach(item => {
-    if (!item.children && item.section === 'extra') otherItems.push(item); else if (item.section === 'extra' && item.children) {
-      // 若未来支持整分类放入 extra，可在此处理；当前无此需求
-      otherItems.push(item);
+    if (item.section === 'extra') {
+      if (item.children) {
+        item.children.forEach(c => extraItems.push(c));
+      } else extraItems.push(item);
     } else {
-      mainItems.push(item);
+      mainGroups.push(item);
     }
   });
 
-  const renderLeaf = (item, isSub = false) => {
+  const ICON_SIZE = 20; // unified icon size
+
+  const renderItem = (item, isChild = false) => {
     const active = item.path && location.pathname === item.path;
+    const label = item.i18nKey ? t(item.i18nKey) : item.label;
+    let IconComp = null;
+    if (item.icon) {
+      if (item.icon.filled || item.icon.regular) {
+        IconComp = active ? item.icon.filled : (item.icon.regular || item.icon.filled);
+      } else {
+        IconComp = item.icon;
+      }
+    }
     const commonProps = {
       onClick: () => item.path && navigate(item.path),
       'aria-current': active ? 'page' : undefined,
-      style: active ? (isSub ? activeSubStyle : activeStyle) : undefined,
+      icon: IconComp ? (
+        <span className={styles.categoryIcon + (collapsed ? ' ' + styles.categoryIconCollapsed : '')}>
+          <IconComp />
+        </span>
+      ) : undefined,
     };
-    const Icon = item.icon;
-    const label = item.i18nKey ? t(item.i18nKey) : item.label;
-    if (isSub) return <NavSubItem key={item.key} {...commonProps}>{label}</NavSubItem>;
-    return <NavItem key={item.key} icon={Icon ? <Icon /> : undefined} {...commonProps}>{label}</NavItem>;
+    const textSpan = (
+      <span
+        className={styles.label + (collapsed ? ' ' + styles.labelCollapsed : '')}
+        aria-current={active ? 'page' : undefined}
+      >
+        {label}
+      </span>
+    );
+    return isChild ? (
+      <NavSubItem key={item.key} {...commonProps}>{textSpan}</NavSubItem>
+    ) : (
+      <NavItem key={item.key} {...commonProps}>{textSpan}</NavItem>
+    );
   };
 
   return (
-    <NavDrawer open type="inline" style={{ minWidth: 220, height: '100vh', borderRight: '1px solid #eee', background: '#fff' }}>
-      <NavDrawerHeader>
-        <span style={{ fontWeight: 700, fontSize: 18, padding: '16px 0 8px 24px', display: 'block' }}>运维管理控制台</span>
-      </NavDrawerHeader>
-      <NavDrawerBody>
-        {mainItems.map(item => {
-          if (item.children) {
-            const anyChildActive = item.children.some(c => c.path && location.pathname === c.path);
-            const open = openCategories.has(item.key);
-            return (
-              <NavCategory key={item.key} value={item.key}>
-                <NavCategoryItem
-                  // Pass an instantiated React element for the icon slot (fixes invalid attribute $$typeof warning)
-                  icon={item.icon ? React.createElement(item.icon) : undefined}
-                  style={anyChildActive ? activeCategoryStyle : undefined}
-                  onClick={() => toggleCategory(item.key)}
-                  aria-expanded={open}
-                  ref={el => { if (el) categoryRefs.current[item.key] = el; }}
-                >
-                  {item.i18nKey ? t(item.i18nKey) : item.label}
-                  <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.6 }}>{open ? '▾' : '▸'}</span>
-                </NavCategoryItem>
-                {open && (
-                  <NavSubItemGroup>
-                    {item.children.map(child => renderLeaf(child, true))}
-                  </NavSubItemGroup>
-                )}
-              </NavCategory>
-            );
+    <div className={styles.root + (collapsed ? ' ' + styles.rootCollapsed : '')}>
+      <div className={styles.toggleBar}>
+        <button aria-label={collapsed ? '展开侧边栏' : '折叠侧边栏'} onClick={toggleCollapsed} className={styles.toggleBtn}>
+          {collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
+        </button>
+      </div>
+      <div className={styles.title + (collapsed ? ' ' + styles.titleCollapsed : '')}>控制台</div>
+      <Nav aria-label="主导航" className={styles.nav}>
+        {mainGroups.map(group => {
+          if (!group.children) return renderItem(group, false);
+          const label = group.i18nKey ? t(group.i18nKey) : group.label;
+          const open = openCategories.has(group.key);
+          // Determine if any child in this group is active to decide icon variant
+          const anyChildActive = group.children.some(c => c.path && c.path === location.pathname);
+          let GroupIcon = null;
+          if (group.icon) {
+            if (group.icon.filled || group.icon.regular) {
+              GroupIcon = anyChildActive ? group.icon.filled : (group.icon.regular || group.icon.filled);
+            } else {
+              GroupIcon = group.icon;
+            }
           }
-          return renderLeaf(item, false);
+          return (
+            <React.Fragment key={group.key}>
+              <NavSectionHeader>
+                <button
+                  type="button"
+                  onClick={() => toggleCategory(group.key)}
+                  aria-expanded={open}
+                  aria-controls={`cat-${group.key}`}
+                  aria-current={anyChildActive ? 'true' : undefined}
+                  className={styles.categoryButton}
+                >
+                  {GroupIcon && (
+                    <span className={styles.categoryIcon + (collapsed ? ' ' + styles.categoryIconCollapsed : '')}>
+                      <GroupIcon />
+                    </span>
+                  )}
+                  <span className={styles.label + (collapsed ? ' ' + styles.labelCollapsed : '')}>{label}</span>
+                  <span aria-hidden="true" className={styles.chevron + (collapsed ? ' ' + styles.chevronHidden : '')}>
+                    {open ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
+                  </span>
+                </button>
+              </NavSectionHeader>
+              {!collapsed && (
+                <div id={`cat-${group.key}`} hidden={!open}>
+                  {open && group.children.map(child => renderItem(child, true))}
+                </div>
+              )}
+            </React.Fragment>
+          );
         })}
-  {otherItems.length > 0 && <><NavDivider /><NavSectionHeader>{t('menu.section.other','其他')}</NavSectionHeader>{otherItems.map(i => renderLeaf(i, false))}</>}
-        <div style={{ padding: '12px 16px', fontSize: 12, opacity: 0.7 }}>当前角色: {role}</div>
-      </NavDrawerBody>
-    </NavDrawer>
+        {extraItems.length > 0 && <>
+          <NavDivider />
+          <NavSectionHeader>{t('menu.section.other','其他')}</NavSectionHeader>
+          {extraItems.map(item => renderItem(item, false))}
+        </>}
+      </Nav>
+      <div className={styles.role + (collapsed ? ' ' + styles.roleCollapsed : '')}>当前角色: {role}</div>
+    </div>
   );
 };
-
-const activeStyle = { background: 'var(--colorBrandBackground2, #F0F6FF)', fontWeight: 600 };
-const activeSubStyle = { background: 'var(--colorBrandBackground2, #F0F6FF)', fontWeight: 600 };
-const activeCategoryStyle = { background: 'var(--colorBrandBackground2, #F0F6FF)', fontWeight: 600 };
 
 export default Sidebar;

@@ -180,6 +180,90 @@ getEffectivePermissions(user, { override:true })
 
 待补充：Sidebar 权限过滤 & 激活态测试（计划使用 mock Router 与 stub Icon）。
 
+## Sidebar 设计说明
+
+### 分类与数据来源
+侧边导航的唯一数据来源是 `menuConfig.js` 中的 `menuTree`：
+- 字段：`key / label / i18nKey / path? / required / icon / children? / section?`
+- `section: 'extra'` 的叶子被归入底部“其他”分区，其余放在主区。
+- 仅叶子节点（具备 `path`）生成实际路由与可点击导航；父级只作为逻辑分组（分类手风琴）。
+
+### 权限过滤
+渲染前通过：
+```js
+filterMenu(menuTree, permissionsSet)
+```
+过滤掉当前用户不具备全部 `required` 权限的节点；对有子节点的父级，若子节点全部被过滤，该父级也被剔除（避免空分类）。
+
+### 动态路由与面包屑复用
+`router/index.jsx` 基于同一份 `menuTree` 构建懒加载路由，`Breadcrumbs` 同样通过扁平化结构衍生——实现“单一配置，多处消费”。
+
+### 展开/折叠与持久化
+分类采用自定义受控手风琴（button + `aria-expanded` + 内容容器 `role=region`），状态结构：
+```
+openCategories: Set<string>
+localStorage key: 'sidebar.openCategories'
+```
+初次渲染时：若当前 `location.pathname` 属于某分类的子节点，则自动将该分类加入展开集合，实现“刷新后仍保持当前上下文”。
+
+### 激活态与内置竖条
+不额外绘制自定义竖条（曾尝试 ::before 后撤销），完全依赖 Fluent UI `NavItem/NavSubItem` 的激活样式：
+- 通过设置 `aria-current="page"` 给匹配当前 `location.pathname` 的叶子菜单项；
+- 主题会在对应项左侧/前方渲染内置蓝色指示（或高亮背景，取决于 Fluent UI 版本 token）；
+- 未选中项不再出现指示条，避免视觉噪点。
+
+### 图标 filled / regular 逻辑
+菜单项 `icon` 字段结构：
+```
+icon: { filled: FilledIconComponent, regular: RegularIconComponent }
+```
+渲染时：
+1. 叶子：当前路径激活则用 `filled`，否则 `regular`（若缺失 regular 则回退 filled）。
+2. 分类父级：若任一子节点激活则使用 filled 版本以提示“组内有活动页面”。
+
+### 无障碍 (a11y)
+- 分类按钮：`aria-expanded` + `aria-controls` 指向对应内容容器 id。
+- 激活叶子：`aria-current="page"` 提示屏幕阅读器当前所在页面。
+- 键盘支持：Enter / Space 触发展开折叠（`onKeyDown` 拦截）。
+
+### 选择放弃的实现方案
+| 方案 | 说明 | 放弃原因 |
+|------|------|---------|
+| Fluent UI `NavCategory` (早期) | 内置分类结构 | 展开状态在特定嵌套下表现不稳定（子菜单不响应） |
+| 自定义 ::before 竖条 | 强制所有激活项显示自绘蓝条 | 与 Fluent UI 原生激活视觉重复，增加样式维护成本 /
+| 运行时递归反射路由模块名 | 动态匹配 import | 命名/路径变更易引入隐性错误，改为明确 `import.meta.glob` + 映射 |
+
+### 扩展建议
+- 添加“折叠全部/展开全部”操作。
+- 支持侧边栏收起成仅图标（宽度收缩）。
+- 分类内搜索（对长菜单）。
+- 键盘上下箭头在同一分类内 roving tabindex 导航。
+- 暗色主题适配（依赖 Fluent UI token 切换）。
+
+### Nav 迁移记录 (2025-09)
+为减少自定义样式与维护开销，Sidebar 从早期自建 Drawer + 手写手风琴结构迁移为官方 Fluent UI `<Nav>` 体系：
+
+迁移要点：
+- 用 `<Nav>` 包裹整体；叶子节点使用 `<NavItem>` / 二级（当前实现视为 `<NavSubItem>`）。
+- 父级分类不直接使用内建折叠组件（官方未暴露手风琴 API），改为 `<NavSectionHeader>` + 自定义 `<button>` 控制内容显隐。
+- 保留原有权限过滤 / i18n / localStorage 展开持久化逻辑。
+- 移除自绘激活竖条 CSS，回归 Fluent UI 内置激活视觉；仅通过设置 `aria-current="page"` 即可。
+- 分类图标与叶子图标共用 filled/regular 策略：如果分类任一子项激活则使用 filled 版本，提供组级上下文提示。
+- Unicode 箭头指示符替换为 Fluent UI `ChevronRight16Regular` / `ChevronDown16Regular`，视觉与组件库一致。
+
+收益：
+- 代码复杂度下降（减少自定义 DOM 结构 & 伪元素）。
+- 与 Fluent UI 主题 / 未来 Token 体系兼容性更好。
+- a11y 语义更清晰（NavItem 的 `aria-current` 处理由库接管）。
+
+潜在注意：
+- 如未来 Fluent UI 提供原生 collapsible section API，可再次精简自定义折叠按钮。
+- 需关注版本升级时 Nav 结构或 className 变更带来的测试影响。
+
+
+---
+以上设计文档补充了 Sidebar 的核心决策背景，方便后续维护及新成员理解。
+
 ## 后续可扩展建议
 - DataTable 列显隐 / 服务端分页 / 列宽拖拽
 - 国际化 (首期内置简易字典，后替换为 i18n 框架)

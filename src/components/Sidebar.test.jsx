@@ -2,7 +2,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import Sidebar from './Sidebar';
 import useGlobalStore from '../store';
 
@@ -44,34 +44,32 @@ describe('Sidebar (permissions)', () => {
     expect(dash.getAttribute('aria-current')).toBe('page');
   });
 
-  it('category toggle expands and persists', () => {
-    // 清理本地存储
+  it('category toggle expands and persists (custom accordion)', () => {
     localStorage.removeItem('sidebar.openCategories');
     renderWithRole('admin', '/');
-    const category = screen.getByText('主机管理');
-    // 初始未展开（子项“主机列表”不可见）
+    const categoryBtn = screen.getByRole('button', { name: /主机管理/ });
+    // 未展开时 hidden 子项不可见
     expect(screen.queryByText('主机列表')).not.toBeInTheDocument();
-    // 点击展开
-    fireEvent.click(category);
+    fireEvent.click(categoryBtn);
     expect(screen.getByText('主机列表')).toBeInTheDocument();
-    // 应写入 localStorage
     const stored = JSON.parse(localStorage.getItem('sidebar.openCategories'));
     expect(stored).toContain('hostCategory');
   });
 
   it('persists category state across renders (storage round-trip)', () => {
-    // 初次渲染点击展开并确认存储
     localStorage.removeItem('sidebar.openCategories');
     renderWithRole('admin', '/');
-    const category = screen.getByText('主机管理');
-    fireEvent.click(category); // 展开
+    const categoryBtn = screen.getByRole('button', { name: /主机管理/ });
+    act(() => { fireEvent.click(categoryBtn); });
     const stored = JSON.parse(localStorage.getItem('sidebar.openCategories'));
     expect(stored).toContain('hostCategory');
-    // 卸载后再次渲染，仍能读取存储键（不强制断言立即可见的子项，避免与库内部实现耦合）
-    // 重新渲染
+    // 卸载后重新挂载
+    cleanup();
     renderWithRole('admin', '/');
-    expect(JSON.parse(localStorage.getItem('sidebar.openCategories'))).toContain('hostCategory');
+    // 重新渲染后可能出现一个实例（不应重复两个）；使用 queryAll 兼容未来结构
+    const items = screen.queryAllByText('主机列表');
+    expect(items.length).toBeGreaterThanOrEqual(1);
   });
 
-  // 子菜单渲染依赖内部 NavCategory 展开机制 (当前实现不自动展开)，此处暂不测试子项可见性，避免对 Fluent UI 内部行为耦合。
+  // 现已切换为自定义受控手风琴，可直接断言子项可见性。
 });
