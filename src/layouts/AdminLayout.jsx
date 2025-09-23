@@ -35,7 +35,6 @@ const useStyles = makeStyles({
     minHeight: 0
   },
   nav: {
-    minWidth: '260px',
     background: tokens.colorNeutralBackground1,
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`
   },

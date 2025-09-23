@@ -25,7 +25,7 @@ const COLLAPSE_STORAGE_KEY = 'sidebar.collapsed';
 
 const useStyles = makeStyles({
   root: {
-    width: 280,
+    minWidth: 280,
     '--sidebar-expanded-width': '280px',
     '--sidebar-collapsed-width': '64px',
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
