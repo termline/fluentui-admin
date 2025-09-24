@@ -12,7 +12,7 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
-    background: tokens.colorNeutralBackground1
+    background: tokens.colorNeutralBackground2
   },
   skipLink: {
     position: 'absolute',
@@ -21,8 +21,8 @@ const useStyles = makeStyles({
     zIndex: 1000,
     background: tokens.colorBrandBackground,
     color: tokens.colorNeutralForegroundOnBrand,
-    padding: '8px 16px',
-    borderRadius: 4,
+    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    borderRadius: tokens.borderRadiusMedium,
     transform: 'translateY(-120%)',
     transition: 'transform 0.2s',
     ':focus': {
@@ -36,26 +36,27 @@ const useStyles = makeStyles({
   },
   nav: {
     background: tokens.colorNeutralBackground1,
-    borderRight: `1px solid ${tokens.colorNeutralStroke2}`
+    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+    flexShrink: 0
   },
   content: {
     flex: '1',
-    padding: tokens.spacingHorizontalL,
-    display: 'grid',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    background: tokens.colorNeutralBackground2,
-    overflow: 'auto',
-    minHeight: 0,
-    boxShadow: `0 0 0 1px ${tokens.colorNeutralStroke2}`,
-    borderRadius: 0
-  },
-  field: {
     display: 'flex',
-    marginTop: tokens.spacingVerticalS,
-    marginLeft: tokens.spacingHorizontalS,
     flexDirection: 'column',
-    gridRowGap: tokens.spacingVerticalS
+    background: tokens.colorNeutralBackground1,
+    overflow: 'hidden',
+    minHeight: 0
+  },
+  main: {
+    flex: 1,
+    padding: tokens.spacingHorizontalL,
+    overflow: 'auto',
+    minHeight: 0
+  },
+  breadcrumbsContainer: {
+    padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL} 0`,
+    background: tokens.colorNeutralBackground1,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`
   }
 });
 
@@ -69,10 +70,14 @@ const AdminLayout = () => {
         <div className={styles.nav}>
           <Sidebar />
         </div>
-        <main id="main-content" className={styles.content}>
-          <Breadcrumbs />
-          <Outlet />
-        </main>
+        <div className={styles.content}>
+          <div className={styles.breadcrumbsContainer}>
+            <Breadcrumbs />
+          </div>
+          <main id="main-content" className={styles.main}>
+            <Outlet />
+          </main>
+        </div>
       </div>
       <Footer />
     </div>

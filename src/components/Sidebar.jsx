@@ -25,135 +25,27 @@ const COLLAPSE_STORAGE_KEY = 'sidebar.collapsed';
 
 const useStyles = makeStyles({
   root: {
-    minWidth: 280,
-    '--sidebar-expanded-width': '280px',
-    '--sidebar-collapsed-width': '64px',
-    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
-    background: tokens.colorNeutralBackground1,
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    transition: 'width 160ms ease'
-  },
-  rootCollapsed: {
-    width: 'var(--sidebar-collapsed-width)'
-  },
-  title: {
-    fontWeight: 500,
-    fontSize: '14px',
-    padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalM} ${tokens.spacingVerticalXS}`,
-    lineHeight: 1.2
-  },
-  titleCollapsed: {
-    fontSize: 0,
-    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalS} ${tokens.spacingVerticalXXS}`
-  },
-  toggleBar: {
-    padding: `${tokens.spacingVerticalXXS} ${tokens.spacingHorizontalS}`,
-    display: 'flex',
-    justifyContent: 'flex-end'
-  },
-  toggleBtn: {
-    background: tokens.colorNeutralBackground1,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    cursor: 'pointer',
-    borderRadius: 4,
-    width: 32,
-    height: 32,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: tokens.colorNeutralForeground1,
-    ':hover': { background: tokens.colorNeutralBackground2 },
-    ':active': { background: tokens.colorNeutralBackground3 },
-    ':focus-visible': { outline: `2px solid ${tokens.colorStrokeFocus2}`, outlineOffset: 2 }
+    overflow: "hidden",
+    display: "flex",
+    height: "600px",
   },
   nav: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalXS} ${tokens.spacingVerticalS}`
+    minWidth: "260px",
   },
-  categoryButton: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    margin: 0,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    width: '100%',
-    fontFamily: 'inherit',
-    fontSize: '13px',
-    lineHeight: 1.3,
-    padding: '6px 8px',
-    borderRadius: 6,
-    textAlign: 'left',
-    color: tokens.colorNeutralForeground1,
-    position: 'relative',
-    ':hover': {
-      background: tokens.colorNeutralBackground2
-    },
-    ':active': {
-      background: tokens.colorNeutralBackground3
-    },
-    ':focus-visible': {
-      outline: `2px solid ${tokens.colorStrokeFocus2}`,
-      outlineOffset: 2
-    }
+  content: {
+    flex: "1",
+    padding: "16px",
+    display: "grid",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
   },
-  categoryIcon: {
-    display: 'inline-flex',
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 20,
-    marginRight: 8,
-    transition: 'margin 160ms ease',
-    // 保证内部 svg 尺寸一致，不因字体继承或 line-height 波动
-    '& svg': {
-      width: 20,
-      height: 20,
-      minWidth: 20,
-      minHeight: 20,
-      flexShrink: 0
-    }
+  field: {
+    display: "flex",
+    marginTop: "4px",
+    marginLeft: "8px",
+    flexDirection: "column",
+    gridRowGap: tokens.spacingVerticalS,
   },
-  categoryIconCollapsed: {
-    marginRight: 0
-  },
-  chevron: {
-    display: 'inline-flex',
-    fontSize: 16,
-    opacity: 0.6
-  },
-  chevronHidden: {
-    display: 'none'
-  },
-  label: {
-    flex: 1,
-    whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis',
-    overflow: 'hidden',
-    transition: 'opacity 120ms ease'
-  },
-  labelCollapsed: {
-    opacity: 0,
-    pointerEvents: 'none'
-  },
-  role: {
-    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
-    fontSize: 11,
-    opacity: 0.65,
-    borderTop: `1px solid ${tokens.colorNeutralStroke2}`
-  },
-  roleCollapsed: {
-    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalXXS}`,
-    fontSize: 10,
-    textAlign: 'center'
-  },
-  collapsedTooltip: {
-    position: 'relative'
-  }
 });
 
 const Sidebar = () => {
@@ -170,7 +62,7 @@ const Sidebar = () => {
   const toggleCollapsed = () => {
     setCollapsed(prev => {
       const next = !prev;
-      try { localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? '1' : '0'); } catch {}
+      try { localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? '1' : '0'); } catch { /* ignore persistence error */ }
       return next;
     });
   };
@@ -186,13 +78,13 @@ const Sidebar = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return new Set(JSON.parse(raw));
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
     const activeParent = filtered.find(i => i.children && i.children.some(c => c.path === location.pathname));
     return activeParent ? new Set([activeParent.key]) : new Set();
   });
 
   const persist = useCallback((setVal) => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(setVal))); } catch(e){ /* ignore */ }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(setVal))); } catch { /* ignore */ }
   }, []);
 
   const toggleCategory = (key) => {
@@ -229,28 +121,73 @@ const Sidebar = () => {
         IconComp = item.icon;
       }
     }
+
+    // 在折叠状态下，使用统一的自定义按钮
+    if (collapsed) {
+      return (
+        <button
+          key={item.key}
+          onClick={() => item.path && navigate(item.path)}
+          aria-current={active ? 'page' : undefined}
+          aria-label={label}
+          className={styles.collapsedMenuItem + (active ? ' ' + styles.collapsedMenuItemActive : '')}
+          title={label}
+        >
+          {IconComp && (
+            <span className={styles.categoryIcon}>
+              <IconComp />
+            </span>
+          )}
+        </button>
+      );
+    }
+
     const commonProps = {
       onClick: () => item.path && navigate(item.path),
       'aria-current': active ? 'page' : undefined,
-      icon: IconComp ? (
-        <span className={styles.categoryIcon + (collapsed ? ' ' + styles.categoryIconCollapsed : '')}>
+      icon: !isChild && IconComp ? (
+        <span className={styles.categoryIcon}>
           <IconComp />
         </span>
       ) : undefined,
     };
     const textSpan = (
       <span
-        className={styles.label + (collapsed ? ' ' + styles.labelCollapsed : '')}
+        className={styles.label}
         aria-current={active ? 'page' : undefined}
       >
         {label}
       </span>
     );
-    return isChild ? (
-      <NavSubItem key={item.key} {...commonProps}>{textSpan}</NavSubItem>
-    ) : (
-      <NavItem key={item.key} {...commonProps}>{textSpan}</NavItem>
-    );
+    
+    if (isChild) {
+      return (
+        <NavSubItem key={item.key} {...commonProps} className="nav-sub-item">
+          {textSpan}
+        </NavSubItem>
+      );
+    } else {
+      // 顶级叶子节点使用与分组按钮一致的自定义按钮样式，去掉默认 NavItem 竖条与背景
+      return (
+        <div key={item.key} className="nav-main-item">
+          <button
+            type="button"
+            onClick={() => item.path && navigate(item.path)}
+            aria-current={active ? 'page' : undefined}
+            className={
+              styles.categoryButton + (active ? ' ' + styles.leafButtonActive : '')
+            }
+          >
+            {IconComp && (
+              <span className={styles.categoryIcon}>
+                <IconComp />
+              </span>
+            )}
+            <span className={styles.label}>{label}</span>
+          </button>
+        </div>
+      );
+    }
   };
 
   return (
@@ -261,7 +198,10 @@ const Sidebar = () => {
         </button>
       </div>
       <div className={styles.title + (collapsed ? ' ' + styles.titleCollapsed : '')}>控制台</div>
-      <Nav aria-label="主导航" className={styles.nav}>
+      <Nav 
+        aria-label="主导航" 
+        className={`${styles.nav} ${collapsed ? styles.navCollapsed : styles.navExpanded}`}
+      >
         {mainGroups.map(group => {
           if (!group.children) return renderItem(group, false);
           const label = group.i18nKey ? t(group.i18nKey) : group.label;
@@ -278,28 +218,37 @@ const Sidebar = () => {
           }
           return (
             <React.Fragment key={group.key}>
-              <NavSectionHeader>
+              <NavSectionHeader className={styles.groupHeader}>
                 <button
                   type="button"
                   onClick={() => toggleCategory(group.key)}
-                  aria-expanded={open}
-                  aria-controls={`cat-${group.key}`}
+                  aria-expanded={collapsed ? undefined : open}
+                  aria-controls={collapsed ? undefined : `cat-${group.key}`}
                   aria-current={anyChildActive ? 'true' : undefined}
-                  className={styles.categoryButton}
+                  aria-label={collapsed ? label : undefined}
+                  title={collapsed ? label : undefined}
+                  className={collapsed ? 
+                    styles.collapsedMenuItem + (anyChildActive ? ' ' + styles.collapsedMenuItemActive : '') :
+                    styles.categoryButton
+                  }
                 >
                   {GroupIcon && (
                     <span className={styles.categoryIcon + (collapsed ? ' ' + styles.categoryIconCollapsed : '')}>
                       <GroupIcon />
                     </span>
                   )}
-                  <span className={styles.label + (collapsed ? ' ' + styles.labelCollapsed : '')}>{label}</span>
-                  <span aria-hidden="true" className={styles.chevron + (collapsed ? ' ' + styles.chevronHidden : '')}>
-                    {open ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
-                  </span>
+                  {!collapsed && (
+                    <>
+                      <span className={styles.label}>{label}</span>
+                      <span aria-hidden="true" className={styles.chevron}>
+                        {open ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
+                      </span>
+                    </>
+                  )}
                 </button>
               </NavSectionHeader>
               {!collapsed && (
-                <div id={`cat-${group.key}`} hidden={!open}>
+                <div id={`cat-${group.key}`} hidden={!open} className={styles.subMenuContainer}>
                   {open && group.children.map(child => renderItem(child, true))}
                 </div>
               )}
@@ -308,7 +257,7 @@ const Sidebar = () => {
         })}
         {extraItems.length > 0 && <>
           <NavDivider />
-          <NavSectionHeader>{t('menu.section.other','其他')}</NavSectionHeader>
+          <NavSectionHeader className={styles.groupHeader}>{t('menu.section.other','其他')}</NavSectionHeader>
           {extraItems.map(item => renderItem(item, false))}
         </>}
       </Nav>

@@ -1,11 +1,22 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { makeStyles, tokens } from '@fluentui/react-components';
 import { findMenuByPath, flattenMenu, menuTree } from '../config/menuConfig';
 import { t } from '../i18n';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbDivider, BreadcrumbButton } from '@fluentui/react-components';
 
+const useStyles = makeStyles({
+  breadcrumb: {
+    marginBottom: tokens.spacingVerticalM
+  },
+  currentItem: {
+    fontWeight: tokens.fontWeightSemibold
+  }
+});
+
 // 生成路径层级：使用匹配的菜单项 parentKeys -> 再映射到扁平表中的对象
 export default function Breadcrumbs() {
+  const styles = useStyles();
   const location = useLocation();
   const navigate = useNavigate();
   const flat = React.useMemo(() => flattenMenu(menuTree), []);
@@ -25,16 +36,20 @@ export default function Breadcrumbs() {
   }
 
   return (
-    <Breadcrumb aria-label="breadcrumb" size="small" style={{ marginBottom: 12 }}>
+    <Breadcrumb aria-label="breadcrumb" size="small" className={styles.breadcrumb}>
       {chainItems.map((item, idx) => {
         const isLast = idx === chainItems.length - 1;
         return (
           <React.Fragment key={item.key}>
             <BreadcrumbItem>
               {isLast || !item.path ? (
-                <span style={{ fontWeight: isLast ? 600 : 400 }}>{item.i18nKey ? t(item.i18nKey) : item.label}</span>
+                <span className={isLast ? styles.currentItem : undefined}>
+                  {item.i18nKey ? t(item.i18nKey) : item.label}
+                </span>
               ) : (
-                <BreadcrumbButton onClick={() => navigate(item.path)}>{item.i18nKey ? t(item.i18nKey) : item.label}</BreadcrumbButton>
+                <BreadcrumbButton onClick={() => navigate(item.path)}>
+                  {item.i18nKey ? t(item.i18nKey) : item.label}
+                </BreadcrumbButton>
               )}
             </BreadcrumbItem>
             {!isLast && <BreadcrumbDivider />}

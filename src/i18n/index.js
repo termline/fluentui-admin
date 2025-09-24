@@ -21,7 +21,7 @@ const dictionaries = {
     'menu.system.security': '安全设置',
     'menu.reports': '报表分析',
     'menu.profile': '个人中心',
-  'menu.section.other': '其他',
+    'menu.section.other': '其他',
     'datatable.export.csv': '导出 CSV',
     'datatable.export.json': '导出 JSON',
     'datatable.column.config': '列配置',

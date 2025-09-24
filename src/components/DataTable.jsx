@@ -1,6 +1,80 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { makeStyles, tokens } from '@fluentui/react-components';
 import { Table, TableHeader, TableRow, TableHeaderCell, TableBody, TableCell, Checkbox, Button, Popover, PopoverTrigger, PopoverSurface } from '@fluentui/react-components';
 import { t } from '../i18n';
+
+const useStyles = makeStyles({
+  container: {
+    width: '100%'
+  },
+  exportBar: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+    marginBottom: tokens.spacingVerticalS,
+    alignItems: 'center'
+  },
+  selectionInfo: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground2
+  },
+  sortHeader: {
+    cursor: 'pointer',
+    userSelect: 'none',
+    ':hover': {
+      background: tokens.colorNeutralBackground1Hover
+    }
+  },
+  sortHeaderContent: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS
+  },
+  sortIndicator: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground2
+  },
+  sortIndicatorInactive: {
+    opacity: 0.3
+  },
+  emptyCell: {
+    textAlign: 'center',
+    color: tokens.colorNeutralForeground3,
+    padding: `${tokens.spacingVerticalXXL} ${tokens.spacingHorizontalS}`,
+    fontSize: tokens.fontSizeBase300
+  },
+  emptyIllustration: {
+    marginBottom: tokens.spacingVerticalM
+  },
+  pagination: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: tokens.spacingHorizontalS,
+    marginTop: tokens.spacingVerticalM
+  },
+  paginationInfo: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground2
+  },
+  columnConfig: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXS,
+    maxWidth: '240px'
+  },
+  columnConfigLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+    fontSize: tokens.fontSizeBase200
+  },
+  columnConfigActions: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalS,
+    marginTop: tokens.spacingVerticalS
+  }
+});
 
 /**
  * 通用数据表组件
@@ -46,6 +120,7 @@ const DataTable = ({
   exportOptions,
   columnVisibility,
 }) => {
+  const styles = useStyles();
   const [selected, setSelected] = useState(() => new Set());
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState(initialSort || null);
@@ -173,8 +248,12 @@ const DataTable = ({
 
   const sortIndicator = (col) => {
     if (!col.sortable) return null;
-    if (!sort || sort.key !== col.key) return <span style={{ opacity: 0.3 }}>⇅</span>;
-    return <span>{sort.direction === 'asc' ? '↑' : '↓'}</span>;
+    const isActive = sort && sort.key === col.key;
+    return (
+      <span className={`${styles.sortIndicator} ${!isActive ? styles.sortIndicatorInactive : ''}`}>
+        {!isActive ? '⇅' : (sort.direction === 'asc' ? '↑' : '↓')}
+      </span>
+    );
   };
 
   // ---------- 导出逻辑 ----------
@@ -193,7 +272,7 @@ const DataTable = ({
     const processedRows = rowsPool.map(r => mapRow(r));
 
     if (format === 'csv') {
-      const headers = colsForExport.map(c => c.name.replace(/\"/g,'"')).join(',');
+      const headers = colsForExport.map(c => c.name.replace(/"/g,'"')).join(',');
       const lines = processedRows.map(r => colsForExport.map(c => {
         const raw = r[c.key];
         let val = raw == null ? '' : String(raw);
@@ -240,19 +319,19 @@ const DataTable = ({
     if (!exportOptions?.enabled) return null;
     const fmts = exportOptions.formats || ['csv','json'];
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+      <div className={styles.exportBar}>
         {fmts.includes('csv') && <Button size="small" onClick={() => doExport('csv')}>{t('datatable.export.csv')}</Button>}
         {fmts.includes('json') && <Button size="small" appearance="secondary" onClick={() => doExport('json')}>{t('datatable.export.json')}</Button>}
-        {enableSelection && <span style={{ fontSize: 12, opacity: 0.7 }}>当前选择: {selected.size} 行</span>}
+        {enableSelection && <span className={styles.selectionInfo}>当前选择: {selected.size} 行</span>}
         {usingVisibility && (
           <Popover positioning="below-start">
             <PopoverTrigger disableButtonEnhancement>
               <Button size="small" appearance="outline">{t('datatable.column.config')}</Button>
             </PopoverTrigger>
-            <PopoverSurface aria-label="列配置" style={{ maxWidth: 240 }}>
-              <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+            <PopoverSurface aria-label="列配置">
+              <div className={styles.columnConfig}>
                 {columns.map(col => (
-                  <label key={col.key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
+                  <label key={col.key} className={styles.columnConfigLabel}>
                     <input
                       type="checkbox"
                       checked={visibleKeys.includes(col.key)}
@@ -260,7 +339,7 @@ const DataTable = ({
                     /> {col.name}
                   </label>
                 ))}
-                <div style={{ display:'flex', gap:8, marginTop:8 }}>
+                <div className={styles.columnConfigActions}>
                   <Button size="small" onClick={() => setVisibleKeys(allKeys)}>{t('datatable.column.selectAll')}</Button>
                   <Button size="small" appearance="secondary" onClick={() => setVisibleKeys([])}>{t('datatable.column.clear')}</Button>
                 </div>
@@ -273,7 +352,7 @@ const DataTable = ({
   };
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className={styles.container}>
       {renderExportBar()}
       <Table size="medium" aria-label="data table">
         <TableHeader>
@@ -288,12 +367,12 @@ const DataTable = ({
               return (
                 <TableHeaderCell
                   key={col.key}
-                  style={{ cursor: col.sortable ? 'pointer' : 'default', userSelect: 'none' }}
+                  className={col.sortable ? styles.sortHeader : undefined}
                   onClick={() => handleSort(col)}
                   aria-sort={ariaSort}
                   role={col.sortable ? 'columnheader' : undefined}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span className={styles.sortHeaderContent}>
                     {col.name} {sortIndicator(col)}
                   </span>
                 </TableHeaderCell>
@@ -305,8 +384,8 @@ const DataTable = ({
         <TableBody>
           {pagedData.length === 0 && (
             <TableRow>
-              <TableCell colSpan={effectiveColumns.length + (actionsColumn ? 1 : 0) + (enableSelection ? 1 : 0)} style={{ textAlign: 'center', color: 'var(--colorNeutralForeground3,#666)', padding: '32px 8px' }}>
-                {emptyIllustration && <div style={{ marginBottom: 12 }}>{emptyIllustration}</div>}
+              <TableCell colSpan={effectiveColumns.length + (actionsColumn ? 1 : 0) + (enableSelection ? 1 : 0)} className={styles.emptyCell}>
+                {emptyIllustration && <div className={styles.emptyIllustration}>{emptyIllustration}</div>}
                 {emptyText}
               </TableCell>
             </TableRow>
@@ -333,8 +412,8 @@ const DataTable = ({
         </TableBody>
       </Table>
       {pageSize > 0 && totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-          <span style={{ fontSize: 12, opacity: 0.7 }}>第 {currentPage} / {totalPages} 页 (共 {sortedData.length} 条)</span>
+        <div className={styles.pagination}>
+          <span className={styles.paginationInfo}>第 {currentPage} / {totalPages} 页 (共 {sortedData.length} 条)</span>
           <Button size="small" appearance="secondary" disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>上一页</Button>
             <Button size="small" appearance="secondary" disabled={currentPage === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>下一页</Button>
         </div>
