@@ -48,6 +48,7 @@ const useStyles = makeStyles({
   },
 });
 
+
 const Sidebar = () => {
   const styles = useStyles();
   const user = useGlobalStore(s => s.user);

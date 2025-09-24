@@ -17,36 +17,48 @@ import {
   DocumentBulletListMultiple20Filled, DocumentBulletListMultiple20Regular,
   DataArea20Filled, DataArea20Regular,
   PersonStar20Filled, PersonStarRegular,
+  bundleIcon
 } from '@fluentui/react-icons';
 import { PERMISSIONS } from './permissions';
+
+
+const Dashboard = bundleIcon(Board20Filled, Board20Regular);
+const Person = bundleIcon(People20Filled, People20Regular);
+const Settings = bundleIcon(Settings20Filled, Settings20Regular);
+const Apps = bundleIcon(Apps20Filled, Apps20Regular);
+const DesktopTower = bundleIcon(DesktopTower20Filled, DesktopTower20Regular);
+const DocumentBulletListMultiple = bundleIcon(DocumentBulletListMultiple20Filled, DocumentBulletListMultiple20Regular);
+const DataArea = bundleIcon(DataArea20Filled, DataArea20Regular);
+const PersonStar = bundleIcon(PersonStar20Filled, PersonStarRegular);
+
 
 // 说明：原 roles 字段在菜单项中被 required(权限数组) 替代
 export const roles = ['admin','auditor','operator','viewer'];
 
 export const menuTree = [
-  { key: 'dashboard', i18nKey: 'menu.dashboard', icon: { filled: Board20Filled, regular: Board20Regular }, path: '/', required: [PERMISSIONS.DASHBOARD_VIEW] },
-  { key: 'hostCategory', i18nKey: 'menu.host.category', icon: { filled: DesktopTower20Filled, regular: DesktopTower20Regular }, required: [PERMISSIONS.HOSTS_READ], children: [
+  { key: 'dashboard', i18nKey: 'menu.dashboard', icon: Dashboard, path: '/', required: [PERMISSIONS.DASHBOARD_VIEW] },
+  { key: 'hostCategory', i18nKey: 'menu.host.category', icon: DesktopTower, required: [PERMISSIONS.HOSTS_READ], children: [
     { key: 'hosts', i18nKey: 'menu.host.list', path: '/hosts', required: [PERMISSIONS.HOSTS_READ] },
     { key: 'addHost', i18nKey: 'menu.host.add', path: '/hosts/add', required: [PERMISSIONS.HOSTS_CREATE] }
   ] },
-  { key: 'serviceCategory', i18nKey: 'menu.service.category', icon: { filled: Apps20Filled, regular: Apps20Regular }, required: [PERMISSIONS.SERVICES_READ], children: [
+  { key: 'serviceCategory', i18nKey: 'menu.service.category', icon: Apps, required: [PERMISSIONS.SERVICES_READ], children: [
     { key: 'services', i18nKey: 'menu.service.list', path: '/services', required: [PERMISSIONS.SERVICES_READ] },
     { key: 'serviceAlerts', i18nKey: 'menu.service.alerts', path: '/services/alerts', required: [PERMISSIONS.SERVICES_ALERTS_READ] }
   ] },
-  { key: 'logCategory', i18nKey: 'menu.log.category', icon: { filled: DocumentBulletListMultiple20Filled, regular: DocumentBulletListMultiple20Regular }, required: [PERMISSIONS.LOGS_READ], children: [
+  { key: 'logCategory', i18nKey: 'menu.log.category', icon: DocumentBulletListMultiple, required: [PERMISSIONS.LOGS_READ], children: [
     { key: 'logs', i18nKey: 'menu.log.list', path: '/logs', required: [PERMISSIONS.LOGS_READ] },
     { key: 'logRules', i18nKey: 'menu.log.rules', path: '/logs/rules', required: [PERMISSIONS.LOGRULES_READ] }
   ] },
-  { key: 'userCategory', i18nKey: 'menu.user.category', icon: { filled: People20Filled, regular: People20Regular }, required: [PERMISSIONS.USERS_READ], children: [
+  { key: 'userCategory', i18nKey: 'menu.user.category', icon: Person, required: [PERMISSIONS.USERS_READ], children: [
     { key: 'users', i18nKey: 'menu.user.users', path: '/users', required: [PERMISSIONS.USERS_READ] },
     { key: 'roles', i18nKey: 'menu.user.roles', path: '/roles', required: [PERMISSIONS.ROLES_MANAGE] }
   ] },
-  { key: 'systemCategory', i18nKey: 'menu.system.category', icon: { filled: Settings20Filled, regular: Settings20Regular }, required: [PERMISSIONS.SETTINGS_READ], children: [
+  { key: 'systemCategory', i18nKey: 'menu.system.category', icon: Settings, required: [PERMISSIONS.SETTINGS_READ], children: [
     { key: 'settings', i18nKey: 'menu.system.settings', path: '/settings', required: [PERMISSIONS.SETTINGS_READ] },
     { key: 'security', i18nKey: 'menu.system.security', path: '/settings/security', required: [PERMISSIONS.SETTINGS_SECURITY_READ] }
   ] },
-  { key: 'reports', i18nKey: 'menu.reports', icon: { filled: DataArea20Filled, regular: DataArea20Regular }, path: '/reports', required: [PERMISSIONS.REPORTS_VIEW], section: 'extra' },
-  { key: 'profile', i18nKey: 'menu.profile', icon: { filled: PersonStar20Filled, regular: PersonStarRegular }, path: '/profile', required: [PERMISSIONS.PROFILE_VIEW], section: 'extra' }
+  { key: 'reports', i18nKey: 'menu.reports', icon: DataArea, path: '/reports', required: [PERMISSIONS.REPORTS_VIEW], section: 'extra' },
+  { key: 'profile', i18nKey: 'menu.profile', icon: PersonStar, path: '/profile', required: [PERMISSIONS.PROFILE_VIEW], section: 'extra' }
 ];
 
 export function flattenMenu(tree = menuTree) {
