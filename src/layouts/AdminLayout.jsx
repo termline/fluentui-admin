@@ -7,79 +7,47 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import { Outlet } from 'react-router-dom';
 
 const useStyles = makeStyles({
-  root: {
-    overflow: 'hidden',
+  layout: {
     display: 'flex',
-    flexDirection: 'column',
     height: '100vh',
-    background: tokens.colorNeutralBackground2
+    width: '100%',
   },
-  skipLink: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    zIndex: 1000,
-    background: tokens.colorBrandBackground,
-    color: tokens.colorNeutralForegroundOnBrand,
-    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
-    borderRadius: tokens.borderRadiusMedium,
-    transform: 'translateY(-120%)',
-    transition: 'transform 0.2s',
-    ':focus': {
-      transform: 'translateY(0)'
-    }
-  },
-  row: {
-    display: 'flex',
-    flex: 1,
-    minHeight: 0
-  },
-  nav: {
-    background: tokens.colorNeutralBackground1,
-    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
-    flexShrink: 0
-  },
-  content: {
-    flex: '1',
-    display: 'flex',
-    flexDirection: 'column',
-    background: tokens.colorNeutralBackground1,
-    overflow: 'hidden',
-    minHeight: 0
+  sidebar: {
+    //width: '240px',
+    backgroundColor: '#f3f2f1',
+    boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
   },
   main: {
-    flex: 1,
-    padding: tokens.spacingHorizontalL,
-    overflow: 'auto',
-    minHeight: 0
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
   },
-  breadcrumbsContainer: {
-    padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL} 0`,
-    background: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`
-  }
+  body: {
+    flexGrow: 1,
+    overflowY: 'auto',
+    backgroundColor: '#fafafa',
+  },
 });
 
-const AdminLayout = () => {
+export const AdminLayout = ({ children }) => {
   const styles = useStyles();
+
   return (
-    <div className={styles.root}>
-      <a href="#main-content" className={styles.skipLink}>跳到主要内容</a>
-      <Header />
-      <div className={styles.row}>
-        <div className={styles.nav}>
-          <Sidebar />
-        </div>
-        <div className={styles.content}>
-          <div className={styles.breadcrumbsContainer}>
+    <div className={styles.layout}>
+      <aside className={styles.sidebar}>
+        <Sidebar />
+      </aside>
+      <main className={styles.main}>
+        <Header />
+
+        <div className={styles.body}>
+          <div className='breadcrumbs'>
             <Breadcrumbs />
           </div>
-          <main id="main-content" className={styles.main}>
-            <Outlet />
-          </main>
+          <div>{Outlet}</div>
         </div>
-      </div>
-      <Footer />
+        <Footer />
+      </main>
     </div>
   );
 };
