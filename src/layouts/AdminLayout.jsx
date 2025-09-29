@@ -1,5 +1,5 @@
 import React from 'react';
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles } from '@fluentui/react-components';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
@@ -44,7 +44,7 @@ export const AdminLayout = ({ children }) => {
           <div className='breadcrumbs'>
             <Breadcrumbs />
           </div>
-          <div>{Outlet}</div>
+          <div><Outlet /></div>
         </div>
         <Footer />
       </main>

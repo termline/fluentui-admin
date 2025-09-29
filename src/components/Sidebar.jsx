@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Nav, NavItem, NavSubItem, NavSectionHeader, NavDivider, makeStyles, tokens } from '@fluentui/react-components';
-import { ChevronDown16Regular, ChevronRight16Regular, PanelLeftContractRegular, PanelLeftExpandRegular } from '@fluentui/react-icons';
+import { Nav, NavItem, NavSubItem, NavSectionHeader, NavDivider } from '@fluentui/react-components';
+import { ChevronDown16Regular, ChevronRight16Regular } from '@fluentui/react-icons';
 import useGlobalStore from '../store';
 import { menuTree } from '../config/menuConfig';
 import { getEffectivePermissions, hasPermission } from '../config/permissions';
@@ -21,52 +21,8 @@ function filterMenu(tree, permissionsSet) {
     .filter(Boolean);
 }
 
-const COLLAPSE_STORAGE_KEY = 'sidebar.collapsed';
-
-const useStyles = makeStyles({
-  root: {
-    overflow: "hidden",
-    display: "flex",
-    height: "600px",
-  },
-  nav: {
-    //minWidth: "260px",
-  },
-  content: {
-    flex: "1",
-    padding: "16px",
-    display: "grid",
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-  },
-  field: {
-    display: "flex",
-    marginTop: "4px",
-    marginLeft: "8px",
-    flexDirection: "column",
-    gridRowGap: tokens.spacingVerticalS,
-  },
-});
-
-
 const Sidebar = () => {
-  const styles = useStyles();
   const user = useGlobalStore(s => s.user);
-  const role = user?.role || 'viewer';
-  // Sidebar collapsed state persistence
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
-      return raw === '1';
-    } catch { return false; }
-  });
-  const toggleCollapsed = () => {
-    setCollapsed(prev => {
-      const next = !prev;
-      try { localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? '1' : '0'); } catch { /* ignore persistence error */ }
-      return next;
-    });
-  };
   const permissionsSet = getEffectivePermissions(user);
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,8 +65,6 @@ const Sidebar = () => {
     }
   });
 
-  const ICON_SIZE = 20; // unified icon size
-
   const renderItem = (item, isChild = false) => {
     const active = item.path && location.pathname === item.path;
     const label = item.i18nKey ? t(item.i18nKey) : item.label;
@@ -122,87 +76,33 @@ const Sidebar = () => {
         IconComp = item.icon;
       }
     }
-
-    // 在折叠状态下，使用统一的自定义按钮
-    if (collapsed) {
-      return (
-        <button
-          key={item.key}
-          onClick={() => item.path && navigate(item.path)}
-          aria-current={active ? 'page' : undefined}
-          aria-label={label}
-          className={styles.collapsedMenuItem + (active ? ' ' + styles.collapsedMenuItemActive : '')}
-          title={label}
-        >
-          {IconComp && (
-            <span className={styles.categoryIcon}>
-              <IconComp />
-            </span>
-          )}
-        </button>
-      );
-    }
-
     const commonProps = {
       onClick: () => item.path && navigate(item.path),
       'aria-current': active ? 'page' : undefined,
-      icon: !isChild && IconComp ? (
-        <span className={styles.categoryIcon}>
-          <IconComp />
-        </span>
-      ) : undefined,
+      icon: !isChild && IconComp ? <IconComp /> : undefined,
     };
     const textSpan = (
-      <span
-        className={styles.label}
-        aria-current={active ? 'page' : undefined}
-      >
-        {label}
-      </span>
+      <span aria-current={active ? 'page' : undefined}>{label}</span>
     );
-    
+
     if (isChild) {
       return (
-        <NavSubItem key={item.key} {...commonProps} className="nav-sub-item">
+        <NavSubItem key={item.key} {...commonProps}>
           {textSpan}
         </NavSubItem>
       );
     } else {
-      // 顶级叶子节点使用与分组按钮一致的自定义按钮样式，去掉默认 NavItem 竖条与背景
       return (
-        <div key={item.key} className="nav-main-item">
-          <button
-            type="button"
-            onClick={() => item.path && navigate(item.path)}
-            aria-current={active ? 'page' : undefined}
-            className={
-              styles.categoryButton + (active ? ' ' + styles.leafButtonActive : '')
-            }
-          >
-            {IconComp && (
-              <span className={styles.categoryIcon}>
-                <IconComp />
-              </span>
-            )}
-            <span className={styles.label}>{label}</span>
-          </button>
-        </div>
+        <NavItem key={item.key} {...commonProps}>
+          {textSpan}
+        </NavItem>
       );
     }
   };
 
   return (
-    <div className={styles.root + (collapsed ? ' ' + styles.rootCollapsed : '')}>
-      <div className={styles.toggleBar}>
-        <button aria-label={collapsed ? '展开侧边栏' : '折叠侧边栏'} onClick={toggleCollapsed} className={styles.toggleBtn}>
-          {collapsed ? <PanelLeftExpandRegular /> : <PanelLeftContractRegular />}
-        </button>
-      </div>
-      <div className={styles.title + (collapsed ? ' ' + styles.titleCollapsed : '')}>控制台</div>
-      <Nav 
-        aria-label="主导航" 
-        className={`${styles.nav} ${collapsed ? styles.navCollapsed : styles.navExpanded}`}
-      >
+    <div>
+      <Nav aria-label="主导航">
         {mainGroups.map(group => {
           if (!group.children) return renderItem(group, false);
           const label = group.i18nKey ? t(group.i18nKey) : group.label;
@@ -219,50 +119,33 @@ const Sidebar = () => {
           }
           return (
             <React.Fragment key={group.key}>
-              <NavSectionHeader className={styles.groupHeader}>
+              <NavSectionHeader>
                 <button
                   type="button"
                   onClick={() => toggleCategory(group.key)}
-                  aria-expanded={collapsed ? undefined : open}
-                  aria-controls={collapsed ? undefined : `cat-${group.key}`}
+                  aria-expanded={open}
+                  aria-controls={`cat-${group.key}`}
                   aria-current={anyChildActive ? 'true' : undefined}
-                  aria-label={collapsed ? label : undefined}
-                  title={collapsed ? label : undefined}
-                  className={collapsed ? 
-                    styles.collapsedMenuItem + (anyChildActive ? ' ' + styles.collapsedMenuItemActive : '') :
-                    styles.categoryButton
-                  }
                 >
-                  {GroupIcon && (
-                    <span className={styles.categoryIcon + (collapsed ? ' ' + styles.categoryIconCollapsed : '')}>
-                      <GroupIcon />
-                    </span>
-                  )}
-                  {!collapsed && (
-                    <>
-                      <span className={styles.label}>{label}</span>
-                      <span aria-hidden="true" className={styles.chevron}>
-                        {open ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
-                      </span>
-                    </>
-                  )}
+                  {GroupIcon && <GroupIcon />}
+                  <span style={{ marginLeft: GroupIcon ? 8 : 0 }}>{label}</span>
+                  <span aria-hidden="true" style={{ marginLeft: 'auto' }}>
+                    {open ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
+                  </span>
                 </button>
               </NavSectionHeader>
-              {!collapsed && (
-                <div id={`cat-${group.key}`} hidden={!open} className={styles.subMenuContainer}>
-                  {open && group.children.map(child => renderItem(child, true))}
-                </div>
-              )}
+              <div id={`cat-${group.key}`} hidden={!open}>
+                {open && group.children.map(child => renderItem(child, true))}
+              </div>
             </React.Fragment>
           );
         })}
         {extraItems.length > 0 && <>
           <NavDivider />
-          <NavSectionHeader className={styles.groupHeader}>{t('menu.section.other','其他')}</NavSectionHeader>
+          <NavSectionHeader>{t('menu.section.other','其他')}</NavSectionHeader>
           {extraItems.map(item => renderItem(item, false))}
         </>}
       </Nav>
-      <div className={styles.role + (collapsed ? ' ' + styles.roleCollapsed : '')}>当前角色: {role}</div>
     </div>
   );
 };
